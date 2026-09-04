@@ -10,3 +10,5 @@ yeah and the left stick does the mouse cursor movement by default. i found that 
 there's some sliders for the mouse cursor movement settings too.
 
 okay have fun!
+
+oh yeah obviously this is open source, just do whatever there's no license assume it's MIT license or Apache license or something it's just an ahk script lol
