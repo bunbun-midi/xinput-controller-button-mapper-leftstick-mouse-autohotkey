@@ -13,6 +13,9 @@ global TriggerThreshold := 30
 global RepeatInterval := 35
 global Enabled := 1
 
+global UpdatingSensitivity := false
+global LastSensitivityDisplay := "12.00"
+
 global AccumX := 0.0
 global AccumY := 0.0
 global PreviousButtons := 0
@@ -69,9 +72,10 @@ Gui, New, +AlwaysOnTop, XInput Left Stick Mouse
 Gui, Font, s10, Segoe UI
 
 Gui, Add, Checkbox, xm ym vEnabled gEnabledChanged Checked, Enable left-stick mouse control
-Gui, Add, Text, xm y+15 w120, Sensitivity
-Gui, Add, Slider, x+5 yp-3 w260 vSensitivitySlider gSensitivityChanged Range1-300, 120
-Gui, Add, Text, xm y+10 w400 vSensitivityLabel, Sensitivity: 12.0
+Gui, Add, Text, xm y+18 w100, Sensitivity
+Gui, Add, Slider, x+5 yp-3 w210 vSensitivitySlider gSensitivityChanged Range1-5000 ToolTip, 1200
+Gui, Add, Edit, x+8 yp-2 w75 vSensitivityEdit gSensitivityEditChanged Number, 12.00
+Gui, Add, Text, xm y+14 w410 vSensitivityLabel, Sensitivity: 12.00
 
 Gui, Add, Text, xm y+12 w120, Dead zone
 Gui, Add, Slider, x+5 yp-3 w260 vDeadzoneSlider gDeadzoneChanged Range0-50, 12
@@ -86,6 +90,14 @@ Gui, Add, Text, xp+15 yp+25 w380 h80 vStatus, Starting...
 Gui, Add, Button, xm y+15 w210 gShowActions, Open button action editor
 
 Gui, Show, w440 h365, XInput Left Stick Mouse
+
+UpdatingSensitivity := true
+GuiControl,, SensitivitySlider, 1200
+GuiControl,, SensitivityEdit, 12.00
+GuiControl,, SensitivityLabel, Sensitivity: 12.00
+GuiControl,, DeadzoneSlider, 12
+GuiControl,, TriggerSlider, 30
+UpdatingSensitivity := false
 
 Gosub, SensitivityChanged
 Gosub, DeadzoneChanged
@@ -408,8 +420,45 @@ SaveMapping(name) {
 ; ------------------------------------------------------------
 
 SensitivityChanged:
-    GuiControlGet, value,, SensitivitySlider
-    Sensitivity := value / 10.0
+    if (UpdatingSensitivity)
+        return
+
+    UpdatingSensitivity := true
+
+    GuiControlGet, sliderValue,, SensitivitySlider
+    Sensitivity := sliderValue / 100.0
+
+    sensitivityText := Format("{:.2f}", Sensitivity)
+    UpdateSensitivityControls(sensitivityText, Round(Sensitivity * 100))
+
+    UpdatingSensitivity := false
+return
+
+SensitivityEditChanged:
+    if (UpdatingSensitivity)
+        return
+
+    UpdatingSensitivity := true
+
+    GuiControlGet, editValue,, SensitivityEdit
+
+    if (editValue = "") {
+        UpdatingSensitivity := false
+        return
+    }
+
+    Sensitivity := editValue + 0.0
+
+    if (Sensitivity < 0.01)
+        Sensitivity := 0.01
+
+    if (Sensitivity > 50.00)
+        Sensitivity := 50.00
+
+    sensitivityText := Format("{:.2f}", Sensitivity)
+    UpdateSensitivityControls(sensitivityText, Round(Sensitivity * 100))
+
+    UpdatingSensitivity := false
 return
 
 DeadzoneChanged:
@@ -439,3 +488,16 @@ GuiEscape:
     SetTimer, RepeatHeldRawKeys, Off
     ExitApp
 return
+
+UpdateSensitivityControls(text, sliderValue) {
+    global LastSensitivityDisplay
+
+    if (text = LastSensitivityDisplay)
+        return
+
+    LastSensitivityDisplay := text
+
+    GuiControl,, SensitivityLabel, % "Sensitivity: " text
+    GuiControl,, SensitivityEdit, %text%
+    GuiControl,, SensitivitySlider, %sliderValue%
+}
